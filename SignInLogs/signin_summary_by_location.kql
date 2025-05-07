@@ -1,0 +1,26 @@
+// KQL Query: Summarize sign-ins by IP and location components (City, State, Country)
+
+// Query logs from the last 30 days
+SigninLogs
+| where TimeGenerated > ago(30d)
+
+// Filter for sign-ins related to Windows Sign In
+| where AppDisplayName contains "Windows Sign In"
+
+// (Optional) Filter by a specific user identity if needed
+// Replace "Target User" with a partial or full user name or remove the line entirely
+| where Identity contains "Target User"
+
+// Parse the dynamic LocationDetails field into a structured object
+| extend location = parse_json(LocationDetails)
+
+// Summarize the count of sign-ins grouped by Identity, IP address, and location fields
+| summarize SignInCount = count() by 
+    Identity,                                    // UPN or account identifier
+    IPAddress,                                   // Public IP of sign-in
+    City = tostring(location.city),              // Extracted city from location
+    State = tostring(location.state),            // Extracted state from location
+    Country = tostring(location.countryOrRegion) // Extracted country/region from location
+
+// Sort results in descending order by sign-in count
+| order by SignInCount desc
